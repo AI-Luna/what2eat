@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import type { QuizQuestion } from "@/types/quiz";
 
 // Example questions matching the API structure
@@ -40,6 +41,8 @@ export default function Quiz() {
   const [fadeIn, setFadeIn] = useState(false);
   const [questionFade, setQuestionFade] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const router = useRouter();
 
   // Fetch questions on mount (or use example questions)
   useEffect(() => {
@@ -84,7 +87,17 @@ export default function Quiz() {
     }, 300);
   };
 
-  const handleNext = () => {
+  const formatQuestionsAndAnswers = (answers: { [key: number]: string }): string => {
+    return Object.entries(answers)
+      .map(([index, answer]) => {
+        const questionIndex = parseInt(index);
+        const question = questions[questionIndex];
+        return `Q: ${question.question}\nA: ${answer}`;
+      })
+      .join('\n\n');
+  };
+
+  const handleNext = async () => {
     if (selectedOption) {
       const newAnswers = { ...answers, [currentQuestion]: selectedOption };
       setAnswers(newAnswers);
@@ -92,9 +105,60 @@ export default function Quiz() {
       if (currentQuestion < questions.length - 1) {
         transitionToQuestion(currentQuestion + 1, null);
       } else {
-        // Submit quiz
+        // Submit quiz - call suggestMenuItem API
         console.log("Quiz completed:", newAnswers);
-        alert("Quiz completed! Recommendations coming soon...");
+
+        // Format answers for API
+        const questionsAndAnswersString = formatQuestionsAndAnswers(newAnswers);
+        console.log("Formatted Q&A:", questionsAndAnswersString);
+
+        // Get menu items from localStorage
+        const menuItemsString = localStorage.getItem('menuItems');
+        if (!menuItemsString) {
+          alert('Menu items not found. Please upload a menu first.');
+          router.push('/upload');
+          return;
+        }
+
+        const menuItems = JSON.parse(menuItemsString);
+        console.log('Menu items from storage:', menuItems);
+
+        // Show loading screen
+        setSuggesting(true);
+
+        try {
+          // Call suggestMenuItem API
+          const response = await fetch('/api/suggestMenuItem', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              menuItems: menuItems,
+              questionsAndAnswers: questionsAndAnswersString,
+            }),
+          });
+
+          const suggestion = await response.json();
+          console.log('Suggestion response:', suggestion);
+
+          if (!response.ok) {
+            alert(`Failed to get suggestion: ${suggestion.error}`);
+            setSuggesting(false);
+            return;
+          }
+
+          // Store suggestion in localStorage
+          localStorage.setItem('suggestion', JSON.stringify(suggestion));
+
+          // Navigate to results page
+          router.push('/results');
+
+        } catch (error) {
+          console.error('Error getting suggestion:', error);
+          alert('Failed to get recommendation. Please try again.');
+          setSuggesting(false);
+        }
       }
     }
   };
@@ -112,6 +176,44 @@ export default function Quiz() {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-xl">Loading questions...</div>
+      </div>
+    );
+  }
+
+  if (suggesting) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        {/* Background gradient effects */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-blue-900/20"></div>
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+
+        <div className="relative z-10 flex flex-col items-center gap-8">
+          {/* Animated circles */}
+          <div className="relative">
+            <div className="w-32 h-32 relative">
+              <div className="absolute inset-0 border-4 border-white/20 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-transparent border-t-white rounded-full animate-spin"></div>
+              <div className="absolute inset-2 border-4 border-transparent border-t-green-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1s' }}></div>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">
+              Finding Your Perfect Item
+            </h1>
+            <p className="text-xl text-white/60">
+              Analyzing your preferences and the menu...
+            </p>
+          </div>
+
+          {/* Progress dots */}
+          <div className="flex gap-2">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+          </div>
+        </div>
       </div>
     );
   }

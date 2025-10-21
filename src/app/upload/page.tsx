@@ -13,6 +13,8 @@ export default function ImageUpload() {
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [processingStage, setProcessingStage] = useState<string>("");
   const router = useRouter();
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,30 +102,75 @@ export default function ImageUpload() {
     if (!selectedFile) return;
 
     setUploading(true);
+    setProcessingStage("Uploading your menu...");
 
     try {
+      // Step 1: Upload the image
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const response = await fetch("/api/upload", {
+      const uploadResponse = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
 
-      const data = await response.json();
+      const uploadData = await uploadResponse.json();
 
-      if (response.ok) {
-        setUploadedUrl(data.url);
-        // Trigger confetti and navigation
-        triggerConfettiAndNavigate();
-      } else {
-        alert(`Upload failed: ${data.error}`);
+      if (!uploadResponse.ok) {
+        alert(`Upload failed: ${uploadData.error}`);
+        return;
       }
-    } catch (error) {
-      console.error("Upload error:", error);
-      alert("Upload failed!");
-    } finally {
+
+      setUploadedUrl(uploadData.url);
       setUploading(false);
+
+      // Step 2: Process the menu with AI
+      setProcessing(true);
+      setProcessingStage("Reading your menu...");
+
+      // Convert public URL to local file path for processing
+      const localPath = `public${uploadData.url}`;
+
+      const processResponse = await fetch("/api/processMenu", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          localFilePath: localPath,
+        }),
+      });
+
+      const menuData = await processResponse.json();
+
+      // Log the response from processMenu API
+      console.log('processMenu API Response:', menuData);
+      console.log('Menu items extracted:', menuData.length ? `${menuData.length} items` : 'No items');
+
+      if (!processResponse.ok) {
+        alert(`Menu processing failed: ${menuData.error}`);
+        setProcessing(false);
+        return;
+      }
+
+      // Store menu items in localStorage for the quiz
+      localStorage.setItem('menuItems', JSON.stringify(menuData));
+      console.log('Menu items stored in localStorage');
+
+      setProcessingStage("Creating your personalized questions...");
+
+      // Small delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Step 3: Success - show confetti and navigate
+      setProcessing(false);
+      triggerConfettiAndNavigate();
+
+    } catch (error) {
+      console.error("Upload/processing error:", error);
+      alert("Something went wrong!");
+      setUploading(false);
+      setProcessing(false);
     }
   };
 
@@ -226,11 +273,11 @@ export default function ImageUpload() {
           </div>
 
           {/* Upload Button */}
-          {preview && (
+          {preview && !processing && (
             <Button
               onClick={handleUpload}
-              disabled={!selectedFile || uploading}
-              className="w-full bg-white text-black hover:bg-white/90 transition-all transform hover:scale-105"
+              disabled={!selectedFile || uploading || processing}
+              className="w-full bg-white text-black hover:bg-white/90 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               size="lg"
             >
               {uploading ? (
@@ -257,6 +304,38 @@ export default function ImageUpload() {
                 "Upload Image"
               )}
             </Button>
+          )}
+
+          {/* Processing Animation */}
+          {processing && (
+            <div className="p-8 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex flex-col items-center gap-6">
+                <div className="relative">
+                  {/* Animated circles */}
+                  <div className="w-24 h-24 relative">
+                    <div className="absolute inset-0 border-4 border-white/20 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-transparent border-t-white rounded-full animate-spin"></div>
+                    <div className="absolute inset-2 border-4 border-transparent border-t-green-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1s' }}></div>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-white font-semibold text-xl mb-2">
+                    {processingStage}
+                  </p>
+                  <p className="text-white/60 text-sm">
+                    This will only take a moment
+                  </p>
+                </div>
+
+                {/* Progress dots */}
+                <div className="flex gap-2">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
