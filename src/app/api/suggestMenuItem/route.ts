@@ -1,68 +1,115 @@
 import { NextRequest, NextResponse } from 'next/server';
+import OpenAI from 'openai';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 /**
- * MenuItem represents a suggested menu item
+ * Suggest Menu Item API
+ *
+ * This API endpoint analyzes user preferences from quiz questions and answers to recommend
+ * personalized menu items from a restaurant's menu.
+ *
+ * Input:
+ * - menuItems: Array of available menu items with their details (name, description, tags, etc.)
+ * - questionsAndAnswers: String containing the user's responses to preference questions
+ *   describing how they're feeling (e.g., spice preference, protein choice, dietary needs)
+ *
+ * Output:
+ * - description: A narrative string explaining the recommended dishes and reasoning
+ *   behind each suggestion based on the user's preferences
+ * - selectedItems: Array of menu item objects that best match the user's preferences
+ * - alternateChoices: Array of additional menu items that are good alternatives
+ *
+ * The algorithm matches user preferences against menu item attributes to provide
+ * personalized recommendations with explanations for each suggestion.
+ */
+
+/**
+ * MenuItem represents a menu item
+ * Must match the structure from processMenu API
  */
 interface MenuItem {
-  id: string;
   name: string;
-  description: string;
-  category: string;
-  tags?: string[];
-  matchReason?: string;
+  description: string | null;
+  course: string | null; // e.g., appetizers, mains, desserts
+  price: number | null;
 }
 
 /**
  * Request body structure
  */
 interface SuggestMenuRequest {
-  answer1: string;
-  answer2: string;
+  menuItems: MenuItem[];
+  questionsAndAnswers: string;
+}
+
+/**
+ * Response structure
+ */
+interface SuggestMenuResponse {
+  description: string;
+  selectedItems: MenuItem[];
+  alternateChoices: MenuItem[];
 }
 
 /**
  * POST /api/suggestMenuItem
  *
- * Processes quiz answers and suggests menu items based on the responses.
+ * Processes quiz answers and suggests menu items based on user preferences.
  *
  * Example request body:
  * {
- *   "answer1": "spicy",
- *   "answer2": "chicken"
+ *   "menuItems": [array of menu item objects],
+ *   "questionsAndAnswers": "Q: How hungry are you? A: Very hungry\nQ: What flavors? A: Spicy..."
  * }
  *
- * Returns: Array of suggested menu items
+ * Returns: {
+ *   "description": "Personalized explanation of recommendations",
+ *   "selectedItems": [2-3 best matching menu items],
+ *   "alternateChoices": [2-3 alternative menu items]
+ * }
  */
 export async function POST(request: NextRequest) {
   try {
     const body: SuggestMenuRequest = await request.json();
 
     // Validate inputs
-    if (!body.answer1 || typeof body.answer1 !== 'string') {
+    if (!body.menuItems || !Array.isArray(body.menuItems)) {
       return NextResponse.json(
-        { error: 'answer1 is required and must be a string' },
+        { error: 'menuItems is required and must be an array' },
         { status: 400 }
       );
     }
 
-    if (!body.answer2 || typeof body.answer2 !== 'string') {
+    if (body.menuItems.length === 0) {
       return NextResponse.json(
-        { error: 'answer2 is required and must be a string' },
+        { error: 'menuItems cannot be empty' },
         { status: 400 }
       );
     }
 
-    if (body.answer1.trim().length === 0 || body.answer2.trim().length === 0) {
+    if (!body.questionsAndAnswers || typeof body.questionsAndAnswers !== 'string') {
       return NextResponse.json(
-        { error: 'Answers cannot be empty' },
+        { error: 'questionsAndAnswers is required and must be a string' },
         { status: 400 }
       );
     }
 
-    // Process answers and generate menu suggestions
-    const suggestions = generateMenuSuggestions(
-      body.answer1.trim(),
-      body.answer2.trim()
+    if (body.questionsAndAnswers.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'questionsAndAnswers cannot be empty' },
+        { status: 400 }
+      );
+    }
+
+    // Generate menu suggestions using OpenAI
+    const suggestions = await generateMenuSuggestions(
+      body.menuItems,
+      body.questionsAndAnswers.trim()
     );
 
     return NextResponse.json(suggestions, { status: 200 });
@@ -85,119 +132,45 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Generate menu item suggestions based on quiz answers
+ * Generate menu item suggestions using OpenAI GPT-4
  *
- * TODO: Replace this placeholder logic with:
- * - Database queries based on preferences
- * - AI-powered recommendation engine
- * - User preference matching algorithm
- * - Menu item filtering and ranking system
+ * Uses AI to analyze user preferences from quiz responses and match them
+ * with available menu items to provide personalized recommendations.
  */
-function generateMenuSuggestions(
-  answer1: string,
-  answer2: string
-): MenuItem[] {
-  // Sample menu database (replace with actual database/API)
-  const menuDatabase: MenuItem[] = [
-    {
-      id: 'm1',
-      name: 'Spicy Chicken Wings',
-      description: 'Crispy wings tossed in our signature hot sauce',
-      category: 'appetizers',
-      tags: ['spicy', 'chicken', 'crispy', 'hot'],
-    },
-    {
-      id: 'm2',
-      name: 'Grilled Chicken Caesar Salad',
-      description: 'Fresh romaine with grilled chicken and parmesan',
-      category: 'salads',
-      tags: ['chicken', 'healthy', 'salad', 'grilled'],
-    },
-    {
-      id: 'm3',
-      name: 'Szechuan Chicken Stir-Fry',
-      description: 'Spicy stir-fried chicken with vegetables',
-      category: 'mains',
-      tags: ['spicy', 'chicken', 'asian', 'vegetables'],
-    },
-    {
-      id: 'm4',
-      name: 'Mild Herb Chicken',
-      description: 'Tender chicken with herbs and lemon',
-      category: 'mains',
-      tags: ['chicken', 'mild', 'herbs', 'healthy'],
-    },
-    {
-      id: 'm5',
-      name: 'Buffalo Chicken Pizza',
-      description: 'Pizza topped with spicy buffalo chicken',
-      category: 'mains',
-      tags: ['spicy', 'chicken', 'pizza', 'buffalo'],
-    },
-    {
-      id: 'm6',
-      name: 'Vegetable Curry',
-      description: 'Spicy vegetable curry with rice',
-      category: 'mains',
-      tags: ['spicy', 'vegetarian', 'curry', 'vegetables'],
-    },
-  ];
+async function generateMenuSuggestions(
+  menuItems: MenuItem[],
+  questionsAndAnswers: string
+): Promise<SuggestMenuResponse> {
+  // Read prompt from file
+  const promptPath = join(process.cwd(), 'src/app/api/suggestMenuItem/prompt.txt');
+  const promptTemplate = readFileSync(promptPath, 'utf-8');
 
-  // Normalize answers for matching
-  const answer1Lower = answer1.toLowerCase();
-  const answer2Lower = answer2.toLowerCase();
+  // Replace placeholders with actual data
+  const prompt = promptTemplate
+    .replace('${questionsAndAnswers}', questionsAndAnswers)
+    .replace('${menuItems}', JSON.stringify(menuItems, null, 2));
 
-  // Score and filter menu items based on answers
-  const scoredItems = menuDatabase.map(item => {
-    let score = 0;
-    const matchedTags: string[] = [];
-
-    // Check if answers match tags
-    if (item.tags) {
-      for (const tag of item.tags) {
-        if (tag.toLowerCase().includes(answer1Lower) ||
-            answer1Lower.includes(tag.toLowerCase())) {
-          score += 2;
-          matchedTags.push(tag);
-        }
-        if (tag.toLowerCase().includes(answer2Lower) ||
-            answer2Lower.includes(tag.toLowerCase())) {
-          score += 2;
-          matchedTags.push(tag);
-        }
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are a helpful restaurant assistant that provides personalized menu recommendations. Always respond with valid JSON.'
+      },
+      {
+        role: 'user',
+        content: prompt
       }
-    }
-
-    // Check name and description for partial matches
-    const searchText = `${item.name} ${item.description}`.toLowerCase();
-    if (searchText.includes(answer1Lower)) score += 1;
-    if (searchText.includes(answer2Lower)) score += 1;
-
-    return {
-      item,
-      score,
-      matchedTags: [...new Set(matchedTags)], // remove duplicates
-    };
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' }
   });
 
-  // Filter items with score > 0 and sort by score (highest first)
-  const suggestions = scoredItems
-    .filter(scored => scored.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(scored => ({
-      ...scored.item,
-      matchReason: scored.matchedTags.length > 0
-        ? `Matches your preferences: ${scored.matchedTags.join(', ')}`
-        : 'Based on your answers',
-    }));
-
-  // If no matches found, return top general recommendations
-  if (suggestions.length === 0) {
-    return menuDatabase.slice(0, 3).map(item => ({
-      ...item,
-      matchReason: 'Popular choice',
-    }));
+  const responseContent = completion.choices[0].message.content;
+  if (!responseContent) {
+    throw new Error('No response from OpenAI');
   }
 
-  return suggestions;
+  const result = JSON.parse(responseContent) as SuggestMenuResponse;
+  return result;
 }
