@@ -111,8 +111,6 @@ async function generateQuestionsFromMenu(
           content: prompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 1000,
     });
 
     const responseText = completion.choices[0]?.message?.content;

@@ -18,10 +18,10 @@ Return your response as a JSON object with this exact structure:
 }
 
 Make sure the questions are:
-- general questions about what the user is feeling, to understand the user’s current cravings, mood, and flavor preferences 
-after they have shared their dietary restrictions, calorie preferences, and hunger level? The questions should be a little quirky.
+- general questions about what the user is feeling, to understand the user’s current cravings, mood, and flavor preferences. 
+They already shared their dietary restrictions, calorie preferences, and hunger level, so do not ask these questions. The questions should be a little quirky.
 Never mention the prices of the menu items in the questions. The questions should be short and sweet.
-This will help us decide which menu items to recommend the customer.
+The answer options will give users a choice of emotions, sensations, and flavors which may be presented across the menu, and no answer should be actual menu items.
 Have no 'or' questons since there will be multiple answers to select from, the answers they pick from should be speaking to their cravings, flavor pallets, hunger level, and the kind of eater they are.
 
 
