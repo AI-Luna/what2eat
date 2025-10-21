@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { getUserDietaryPreferences, formatDietaryPreferencesForPrompt } from '@/lib/clerk';
 
 /**
  * QuizQuestion represents a single question with its answer
@@ -91,16 +92,20 @@ async function generateQuestionsFromMenu(
     apiKey: process.env.OPENAI_API_KEY,
   });
 
+  // Get user's dietary preferences
+  const dietaryPreferences = await getUserDietaryPreferences();
+  const dietaryInfo = formatDietaryPreferencesForPrompt(dietaryPreferences);
+
   // Read prompt from file
   const promptPath = join(process.cwd(), 'src/app/api/generateQuiz/prompt.txt');
   const promptTemplate = readFileSync(promptPath, 'utf-8');
-  
-  // Replace ${menu} placeholder with actual menu
-  const prompt = promptTemplate.replace('${menu}', menu);
+
+  // Replace ${menu} placeholder with actual menu and append dietary info
+  const prompt = promptTemplate.replace('${menu}', menu) + dietaryInfo;
 
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",

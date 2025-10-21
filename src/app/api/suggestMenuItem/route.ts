@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { getUserDietaryPreferences, formatDietaryPreferencesForPrompt } from '@/lib/clerk';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -141,14 +142,18 @@ async function generateMenuSuggestions(
   menuItems: MenuItem[],
   questionsAndAnswers: string
 ): Promise<SuggestMenuResponse> {
+  // Get user's dietary preferences
+  const dietaryPreferences = await getUserDietaryPreferences();
+  const dietaryInfo = formatDietaryPreferencesForPrompt(dietaryPreferences);
+
   // Read prompt from file
   const promptPath = join(process.cwd(), 'src/app/api/suggestMenuItem/prompt.txt');
   const promptTemplate = readFileSync(promptPath, 'utf-8');
 
-  // Replace placeholders with actual data
+  // Replace placeholders with actual data and append dietary info
   const prompt = promptTemplate
     .replace('${questionsAndAnswers}', questionsAndAnswers)
-    .replace('${menuItems}', JSON.stringify(menuItems, null, 2));
+    .replace('${menuItems}', JSON.stringify(menuItems, null, 2)) + dietaryInfo;
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o-mini',

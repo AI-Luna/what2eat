@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
+import { getUserDietaryPreferences, formatDietaryPreferencesForPrompt } from '@/lib/clerk';
 
 /**
  * MenuItem represents a single menu item
@@ -153,9 +154,13 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
     apiKey: process.env.OPENAI_API_KEY,
   });
 
+  // Get user's dietary preferences
+  const dietaryPreferences = await getUserDietaryPreferences();
+  const dietaryInfo = formatDietaryPreferencesForPrompt(dietaryPreferences);
+
   // Read prompt template
   const promptPath = join(process.cwd(), 'src/app/api/processMenu/prompt.txt');
-  const systemPrompt = readFileSync(promptPath, 'utf-8');
+  const systemPrompt = readFileSync(promptPath, 'utf-8') + dietaryInfo;
 
   try {
     // Build the message content based on input type
@@ -230,7 +235,7 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
 
     // Call OpenAI API with vision capabilities
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Using gpt-5-mini for vision support
+      model: 'gpt-4o-mini', // Using gpt-4o-mini for vision support
       messages: [
         {
           role: 'system',
