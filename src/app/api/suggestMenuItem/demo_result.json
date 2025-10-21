@@ -1,0 +1,43 @@
+{
+  description: 'Based on your craving for spicy chicken and your very hungry state, I recommend a combination of chicken tacos and buffalo chicken options that will satisfy your appetite with bold flavors.',
+  selectedItems: [
+    {
+      name: 'CHICKEN TACOS',
+      description: 'Spicy shredded chicken with avocado tomatillo, cilantro, onion',
+      course: 'tacos & quesadillas',
+      price: null
+    },
+    {
+      name: 'CRISPY BUFFALO CHICKEN SANDO',
+      description: 'Chicken breast with slaw, house pickles, tossed in buffalo',
+      course: 'mains',
+      price: 17
+    },
+    {
+      name: 'WINGS',
+      description: 'Choose from: Coconut, Buffalo or Lemon Pepper \nAdd Bleu Cheese: 50¢',
+      course: 'appetizers',
+      price: 10
+    }
+  ],
+  alternateChoices: [
+    {
+      name: 'CHICKEN TENDIES BASKET',
+      description: 'Three piece tenders served with ranch and buffalo sauce',
+      course: 'mains',
+      price: 15
+    },
+    {
+      name: 'BRASS HAT BURGER',
+      description: 'Served medium with caramelized onions, pepper jack cheese, pickled jalapeños, sweet chili sauce',
+      course: 'mains',
+      price: 17
+    },
+    {
+      name: 'LOADED NACHOS',
+      description: 'Queso, guac, pico de gallo, jalapeño. Choose from: carnitas, chicken, or black bean',
+      course: 'other',
+      price: 38
+    }
+  ]
+}

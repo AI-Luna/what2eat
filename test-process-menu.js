@@ -123,6 +123,7 @@ async function testImageUrl() {
     if (Array.isArray(data) && data.length > 0) {
       // Organize by course
       const itemsByCourse = {};
+      console.log(data)
       data.forEach(item => {
         const course = item.course || 'Uncategorized';
         if (!itemsByCourse[course]) itemsByCourse[course] = [];
