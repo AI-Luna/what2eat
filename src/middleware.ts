@@ -4,6 +4,7 @@ import { clerkClient } from '@clerk/nextjs/server'
 
 // Define public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
+  '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
 ])
@@ -29,6 +30,12 @@ export default clerkMiddleware(async (auth, req) => {
   // If user is not authenticated, redirect to sign-in
   if (!userId) {
     return redirectToSignIn()
+  }
+
+  // If authenticated user is on the landing page, redirect to upload
+  if (req.nextUrl.pathname === '/') {
+    const uploadUrl = new URL('/upload', req.url)
+    return NextResponse.redirect(uploadUrl)
   }
 
   // For authenticated users not on onboarding or success page, check if they've completed onboarding
