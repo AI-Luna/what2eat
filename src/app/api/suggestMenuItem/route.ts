@@ -75,11 +75,19 @@ interface SuggestMenuResponse {
  * }
  */
 export async function POST(request: NextRequest) {
+  console.log('[SuggestMenuItem API] Starting suggestion generation...');
+
   try {
     const body: SuggestMenuRequest = await request.json();
 
+    console.log('[SuggestMenuItem API] Request received:', {
+      menuItemsCount: body.menuItems?.length || 0,
+      questionsAndAnswersLength: body.questionsAndAnswers?.length || 0
+    });
+
     // Validate inputs
     if (!body.menuItems || !Array.isArray(body.menuItems)) {
+      console.log('[SuggestMenuItem API] Error: menuItems invalid');
       return NextResponse.json(
         { error: 'menuItems is required and must be an array' },
         { status: 400 }
@@ -87,6 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.menuItems.length === 0) {
+      console.log('[SuggestMenuItem API] Error: menuItems empty');
       return NextResponse.json(
         { error: 'menuItems cannot be empty' },
         { status: 400 }
@@ -94,6 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!body.questionsAndAnswers || typeof body.questionsAndAnswers !== 'string') {
+      console.log('[SuggestMenuItem API] Error: questionsAndAnswers invalid');
       return NextResponse.json(
         { error: 'questionsAndAnswers is required and must be a string' },
         { status: 400 }
@@ -101,11 +111,16 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.questionsAndAnswers.trim().length === 0) {
+      console.log('[SuggestMenuItem API] Error: questionsAndAnswers empty');
       return NextResponse.json(
         { error: 'questionsAndAnswers cannot be empty' },
         { status: 400 }
       );
     }
+
+    console.log('[SuggestMenuItem API] Calling OpenAI for suggestions...');
+    console.log('[SuggestMenuItem API] Menu items:', body.menuItems);
+    console.log('[SuggestMenuItem API] Questions & Answers:', body.questionsAndAnswers);
 
     // Generate menu suggestions using OpenAI
     const suggestions = await generateMenuSuggestions(
@@ -113,9 +128,14 @@ export async function POST(request: NextRequest) {
       body.questionsAndAnswers.trim()
     );
 
+    console.log('[SuggestMenuItem API] Suggestions generated successfully:', {
+      selectedItemsCount: suggestions.selectedItems.length,
+      alternateChoicesCount: suggestions.alternateChoices.length
+    });
+
     return NextResponse.json(suggestions, { status: 200 });
   } catch (error) {
-    console.error('Error suggesting menu items:', error);
+    console.error('[SuggestMenuItem API] Error:', error);
 
     // Handle JSON parsing errors
     if (error instanceof SyntaxError) {
