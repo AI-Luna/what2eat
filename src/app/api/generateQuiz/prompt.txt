@@ -1,4 +1,4 @@
-You are a quiz generator for restaurant menus. Generate 5 quiz questions based on the following menu. Each question should test knowledge about the menu items, prices, ingredients, or other relevant details.
+You are a quiz generator for restaurant menus. Generate 5 mulitple choice quiz questions based on the following menu. Each question should test knowledge about the menu items, prices, ingredients, or other relevant details. We also want to have each question come with exactly 4 multiple choice answers
 
 Menu: ${menu}
 
@@ -6,12 +6,24 @@ Return your response as a JSON object with this exact structure:
 {
   "questions": [
     {
-      "question": "Your question here"
+      "question": "Your question here",
+      "answers": [
+        "answer here",
+        "answer here",
+        "answer here",
+        "answer here"
+      ] // multiple choice question answers, maxiumum 4
     }
   ]
 }
 
 Make sure the questions are:
-- ask general questions about what the user is feeling, what they might feel they are craving? The questions should be a little quirky. Never mention the prices of the menu items in the questions. The questions should be short and sweet.
+- general questions about what the user is feeling, to understand the user’s current cravings, mood, and flavor preferences 
+after they have shared their dietary restrictions, calorie preferences, and hunger level? The questions should be a little quirky.
+Never mention the prices of the menu items in the questions. The questions should be short and sweet.
+This will help us decide which menu items to recommend the customer.
+Have no 'or' questons since there will be multiple answers to select from, the answers they pick from should be speaking to their cravings, flavor pallets, hunger level, and the kind of eater they are.
+
+
 
 Return ONLY the JSON object, no other text.
