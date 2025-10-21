@@ -8,6 +8,7 @@ import { join } from 'path';
  */
 interface QuizQuestion {
   question: string;
+  questionType: "multiple-choice" | "anything";
 }
 
 /**
