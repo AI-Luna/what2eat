@@ -19,6 +19,8 @@ interface MenuItem {
 interface ProcessMenuRequest {
   menuText?: string;        // Raw menu text
   imageUrl?: string;        // URL to menu image
+  imageBase64?: string;     // Base64 encoded image data
+  localFilePath?: string;   // Local file path (development only)
   fileId?: string;          // Uploaded file ID (from OpenAI Files API)
   filterCourse?: string;    // Optional: filter results by course
 }
@@ -45,6 +47,11 @@ interface OpenAIMenuResponse {
  *   "imageUrl": "https://example.com/menu.jpg"
  * }
  *
+ * Example request body (base64 image):
+ * {
+ *   "imageBase64": "iVBORw0KGgoAAAANSUhEUgAA..."
+ * }
+ *
  * Example request body (uploaded file):
  * {
  *   "fileId": "file-abc123"
@@ -57,9 +64,9 @@ export async function POST(request: NextRequest) {
     const body: ProcessMenuRequest = await request.json();
 
     // Validate input - at least one input type must be provided
-    if (!body.menuText && !body.imageUrl && !body.fileId) {
+    if (!body.menuText && !body.imageUrl && !body.imageBase64 && !body.localFilePath && !body.fileId) {
       return NextResponse.json(
-        { error: 'One of menuText, imageUrl, or fileId is required' },
+        { error: 'One of menuText, imageUrl, imageBase64, localFilePath, or fileId is required' },
         { status: 400 }
       );
     }
@@ -88,8 +95,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Return more detailed error in development
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process menu';
     return NextResponse.json(
-      { error: 'Failed to process menu' },
+      { error: 'Failed to process menu', details: errorMessage },
       { status: 500 }
     );
   }
@@ -122,6 +131,26 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
         type: 'text',
         text: `Extract menu items from the following text:\n\n${input.menuText}`,
       });
+    } else if (input.localFilePath) {
+      // Local file path - read and convert to base64
+      const filePath = join(process.cwd(), input.localFilePath);
+      const imageBuffer = readFileSync(filePath);
+      const base64Image = imageBuffer.toString('base64');
+
+      // Detect image type from file extension
+      const ext = input.localFilePath.toLowerCase().split('.').pop();
+      const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+      messageContent.push({
+        type: 'text',
+        text: 'Extract all menu items from this image:',
+      });
+      messageContent.push({
+        type: 'image_url',
+        image_url: {
+          url: `data:${mimeType};base64,${base64Image}`
+        },
+      });
     } else if (input.imageUrl) {
       // Image URL
       messageContent.push({
@@ -132,15 +161,27 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
         type: 'image_url',
         image_url: { url: input.imageUrl },
       });
+    } else if (input.imageBase64) {
+      // Base64 encoded image
+      messageContent.push({
+        type: 'text',
+        text: 'Extract all menu items from this image:',
+      });
+      messageContent.push({
+        type: 'image_url',
+        image_url: {
+          url: `data:image/jpeg;base64,${input.imageBase64}`
+        },
+      });
     } else if (input.fileId) {
       // Uploaded file - Note: This requires the file to be accessible via URL
       // For now, we'll return an error as file handling requires additional setup
-      throw new Error('File upload support requires additional configuration. Please use menuText or imageUrl.');
+      throw new Error('File upload support requires additional configuration. Please use menuText, imageUrl, or imageBase64.');
     }
 
     // Call OpenAI API with vision capabilities
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o', // Using gpt-4o for vision support
+      model: 'gpt-5-mini', // Using gpt-5-mini for vision support
       messages: [
         {
           role: 'system',
