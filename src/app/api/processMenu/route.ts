@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import sharp from 'sharp';
 
 /**
  * MenuItem represents a single menu item
@@ -114,6 +115,36 @@ function stripMarkdownFormatting(text: string): string {
 }
 
 /**
+ * Downscale image to ensure largest dimension is <= 700px
+ * Maintains aspect ratio
+ */
+async function downscaleImage(imageBuffer: Buffer): Promise<Buffer> {
+  const image = sharp(imageBuffer);
+  const metadata = await image.metadata();
+
+  if (!metadata.width || !metadata.height) {
+    throw new Error('Unable to read image dimensions');
+  }
+
+  const maxDimension = 700;
+  const largestDimension = Math.max(metadata.width, metadata.height);
+
+  // Only resize if image is larger than max dimension
+  if (largestDimension > maxDimension) {
+    if (metadata.width > metadata.height) {
+      // Width is larger - resize based on width
+      return await image.resize({ width: maxDimension }).toBuffer();
+    } else {
+      // Height is larger - resize based on height
+      return await image.resize({ height: maxDimension }).toBuffer();
+    }
+  }
+
+  // Image is already small enough
+  return imageBuffer;
+}
+
+/**
  * Extract menu items from various input types using OpenAI Vision/GPT-4
  */
 async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> {
@@ -141,10 +172,13 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
         text: `Extract menu items from the following text:\n\n${input.menuText}`,
       });
     } else if (input.localFilePath) {
-      // Local file path - read and convert to base64
+      // Local file path - read, downscale, and convert to base64
       const filePath = join(process.cwd(), input.localFilePath);
       const imageBuffer = readFileSync(filePath);
-      const base64Image = imageBuffer.toString('base64');
+
+      // Downscale image to max 700px on largest dimension
+      const downscaledBuffer = await downscaleImage(imageBuffer);
+      const base64Image = downscaledBuffer.toString('base64');
 
       // Detect image type from file extension
       const ext = input.localFilePath.toLowerCase().split('.').pop();
@@ -171,7 +205,13 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
         image_url: { url: input.imageUrl },
       });
     } else if (input.imageBase64) {
-      // Base64 encoded image
+      // Base64 encoded image - decode, downscale, and re-encode
+      const imageBuffer = Buffer.from(input.imageBase64, 'base64');
+
+      // Downscale image to max 700px on largest dimension
+      const downscaledBuffer = await downscaleImage(imageBuffer);
+      const base64Image = downscaledBuffer.toString('base64');
+
       messageContent.push({
         type: 'text',
         text: 'Extract all menu items from this image:',
@@ -179,7 +219,7 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
       messageContent.push({
         type: 'image_url',
         image_url: {
-          url: `data:image/jpeg;base64,${input.imageBase64}`
+          url: `data:image/jpeg;base64,${base64Image}`
         },
       });
     } else if (input.fileId) {
