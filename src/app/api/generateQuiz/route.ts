@@ -1,33 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
+import OpenAI from 'openai';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 /**
  * QuizQuestion represents a single question with its answer
  */
 interface QuizQuestion {
-  id: string;
   question: string;
-  answer: string;
-  category?: string;
-  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 /**
  * Request body structure
  */
 interface GenerateQuizRequest {
-  input: string;
-  count?: number; // optional: number of questions to generate
+  menu: string;
+}
+
+/**
+ * OpenAI response structure
+ */
+interface OpenAIQuizResponse {
+  questions: QuizQuestion[];
 }
 
 /**
  * POST /api/generateQuiz
  *
- * Generates quiz questions based on input text.
+ * Generates quiz questions based on menu input using OpenAI GPT-4o-mini.
  *
  * Example request body:
  * {
- *   "input": "JavaScript is a programming language...",
- *   "count": 5  // optional, defaults to 3
+ *   "menu": "Pizza Margherita - $12, Caesar Salad - $8, Pasta Carbonara - $15"
  * }
  *
  * Returns: Array of question-answer objects
@@ -37,27 +41,23 @@ export async function POST(request: NextRequest) {
     const body: GenerateQuizRequest = await request.json();
 
     // Validate input
-    if (!body.input || typeof body.input !== 'string') {
+    if (!body.menu || typeof body.menu !== 'string') {
       return NextResponse.json(
-        { error: 'Input string is required' },
+        { error: 'Menu string is required' },
         { status: 400 }
       );
     }
 
-    if (body.input.trim().length === 0) {
+    if (body.menu.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Input string cannot be empty' },
+        { error: 'Menu string cannot be empty' },
         { status: 400 }
       );
     }
 
-    const questionCount = body.count || 3;
-
-    // TODO: Replace with actual quiz generation logic
-    // This is a template - integrate with AI service, database, or custom logic
-    const quizQuestions: QuizQuestion[] = generateQuestionsFromInput(
-      body.input,
-      questionCount
+    // Generate quiz questions using OpenAI GPT-4o-mini
+    const quizQuestions: QuizQuestion[] = await generateQuestionsFromMenu(
+      body.menu
     );
 
     return NextResponse.json(quizQuestions, { status: 200 });
@@ -80,61 +80,62 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Generate quiz questions from input text
- *
- * TODO: Replace this placeholder logic with:
- * - AI/LLM integration (OpenAI, Anthropic, etc.)
- * - NLP processing
- * - Database lookup
- * - Custom question generation algorithm
+ * Generate quiz questions from menu using OpenAI GPT-4o-mini
  */
-function generateQuestionsFromInput(
-  input: string,
-  count: number
-): QuizQuestion[] {
-  // Placeholder implementation - generates example questions
-  const questions: QuizQuestion[] = [];
+async function generateQuestionsFromMenu(
+  menu: string
+): Promise<QuizQuestion[]> {
+  // Initialize OpenAI client
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
 
-  // Extract some basic info from input for demonstration
-  const wordCount = input.split(/\s+/).length;
-  const hasNumbers = /\d/.test(input);
-  const firstWord = input.trim().split(/\s+/)[0];
+  // Read prompt from file
+  const promptPath = join(process.cwd(), 'src/app/api/generateQuiz/prompt.txt');
+  const promptTemplate = readFileSync(promptPath, 'utf-8');
+  
+  // Replace ${menu} placeholder with actual menu
+  const prompt = promptTemplate.replace('${menu}', menu);
 
-  // Generate sample questions (replace with actual logic)
-  const templates = [
-    {
-      question: `What is the main topic discussed in: "${input.slice(0, 50)}${input.length > 50 ? '...' : ''}"?`,
-      answer: 'Replace with extracted topic',
-      category: 'comprehension',
-      difficulty: 'easy' as const,
-    },
-    {
-      question: `How many words are in the provided text?`,
-      answer: `${wordCount} words`,
-      category: 'analysis',
-      difficulty: 'easy' as const,
-    },
-    {
-      question: `What is the first word in the input text?`,
-      answer: firstWord,
-      category: 'detail',
-      difficulty: 'easy' as const,
-    },
-    {
-      question: `Does the text contain numerical values?`,
-      answer: hasNumbers ? 'Yes' : 'No',
-      category: 'analysis',
-      difficulty: 'easy' as const,
-    },
-  ];
-
-  // Return requested number of questions
-  for (let i = 0; i < Math.min(count, templates.length); i++) {
-    questions.push({
-      id: `q${i + 1}`,
-      ...templates[i],
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are a helpful assistant that generates quiz questions from restaurant menus. Always respond with valid JSON only."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
     });
-  }
 
-  return questions;
+    const responseText = completion.choices[0]?.message?.content;
+    if (!responseText) {
+      throw new Error('No response from OpenAI');
+    }
+
+    // Parse the JSON response
+    const parsedResponse: OpenAIQuizResponse = JSON.parse(responseText);
+    
+    // Validate the response structure
+    if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
+      throw new Error('Invalid response structure from OpenAI');
+    }
+
+    // Ensure each question has the required fields
+    const validQuestions = parsedResponse.questions.filter(q => 
+      q.question && 
+      typeof q.question === 'string'
+    );
+
+    return validQuestions;
+  } catch (error) {
+    console.error('Error calling OpenAI API:', error);
+    throw new Error('Failed to generate quiz questions from OpenAI');
+  }
 }
