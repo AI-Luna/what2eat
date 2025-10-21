@@ -3,31 +3,69 @@ import type { QuizQuestion } from '@/types/quiz';
 
 // Example questions data - this would typically come from a database or external API
 const questions: QuizQuestion[] = [
-  {
-    question: "What flavor mood is ruling your stomach today?",
-    answers: ["Fiery and adventurous", "Cheesy and comforting", "Crisp and salty", "Herbaceous and light"]
-  },
-  {
-    question: "How hungry are you feeling right now?",
-    answers: ["Just a nibble", "Regular hunger", "Pretty hungry", "Absolutely starving"]
-  },
-  {
-    question: "What's your spice tolerance level?",
-    answers: ["Keep it mild", "A little kick", "Bring the heat", "Make it volcanic"]
-  },
-  {
-    question: "Are you in the mood for something familiar or adventurous?",
-    answers: ["Stick with what I know", "Slightly adventurous", "Try something new", "Surprise me completely"]
-  },
-  {
-    question: "What texture are you craving?",
-    answers: ["Soft and tender", "Crispy and crunchy", "Creamy and smooth", "Mixed textures"]
-  },
-  {
-    question: "Do you have any allergies?",
-    answers: ["Dairy/Milk", "Eggs", "Peanuts", "Tree nuts", "Soy", "Wheat", "Fish", "Shellfish", "Sesame", "Other (please specify):_____"]
-  }
-];
+    {
+      "question": "How hungry are you?",
+      "answers": [
+        "Girl dinner. Just vibes and crumbs.",
+        "Appetizer energy only.",
+        "Regular human hungry.",
+        "I could eat a cow."
+      ]
+    },
+    {
+      "question": "Do you have any dietary restrictions?",
+      "answers": [
+        "Vegetarian",
+        "Vegan",
+        "Gluten-free (celiac disease)",
+        "Lactose intolerant",
+        "Kosher",
+        "Halal",
+        "Low sodium",
+        "Diabetic-friendly/Low sugar"
+      ]
+    },
+    {
+      "question": "Calorie Preference",
+      "answers": [
+        "Caloric deficit — gotta watch my carbs.",
+        "Caloric maintenance — I’ll have what they’re having.",
+        "Caloric surplus — I’m not watching my waist.",
+        "No clue, just feed me good food."
+      ]
+    },
+    {
+        "question":"What flavor mood is ruling your stomach today?",
+        "answers": [
+            "Fiery and adventurous","Cheesy and comforting",
+            "Crisp and salty","Herbaceous and light"
+        ]
+    },
+    {
+        "question":"What texture are you daydreaming about?",
+        "answers": [
+            "Crunchy and shareable",
+            "Tender and melt-in-your-mouth",
+            "Bubbly and creamy","Crispy and golden"
+        ]
+    },
+    {
+        "question":"Pick the vibe your plate should bring",
+        "answers": [
+            "Casual party-friendly",
+            "Romantic upscale",
+            "Nostalgic homey",
+            "Bold and indulgent"
+        ]
+    },
+    {
+        "question":"Pick the after-meal vibe you’re hunting",
+        "answers":[
+            "Cozy and satisfied","Energized and ready to chat","A little tipsy and merry",
+            "Light and refreshed"
+        ]
+    }
+  ];
 
 export async function GET() {
   try {
