@@ -1,103 +1,71 @@
 import Image from "next/image";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div style={{backgroundColor: '#000000'}}>
+      {/* Hero Section */}
+      <section className="relative overflow-hidden min-h-screen flex items-center justify-center">
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="flex flex-col items-center text-center space-y-8">
+            <div className="space-y-4 max-w-3xl">
+              <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
+                Can't Decide<br />What to Eat?
+              </h1>
+              <p className="text-xl md:text-2xl text-muted-foreground">
+                Let AI help you discover the perfect dish from any restaurant menu
+              </p>
+            </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <div className="flex gap-4 items-center justify-center">
+              <Button size="lg" className="text-lg px-12 py-6 h-auto">
+                Get Started
+              </Button>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+
+        {/* Food Images - Positioned on sides */}
+        <div className="absolute -left-[15vw] md:-left-[200px] top-1/4 -translate-y-1/2 w-[35vw] md:w-[550px]">
           <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+            src="/ChatGPT Image Oct 21, 2025 at 12_19_36 PM.png"
+            alt="Pasta dish"
+            width={550}
+            height={550}
+            className="rounded-lg opacity-90 w-full h-auto"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        </div>
+
+        <div className="absolute -right-[10vw] md:-right-[100px] top-1/2 rotate-45 w-[30vw] md:w-[400px]">
           <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+            src="/ChatGPT Image Oct 21, 2025 at 12_19_37 PM.png"
+            alt="Burrito"
+            width={400}
+            height={400}
+            className="rounded-lg opacity-90 w-full h-auto"
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        </div>
+
+        <div className="absolute -right-[8vw] md:-right-[80px] -top-[8vw] md:-top-[80px] w-[28vw] md:w-[350px]">
           <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
+            src="/ChatGPT Image Oct 21, 2025 at 12_23_29 PM.png"
+            alt="Pizza slice"
+            width={350}
+            height={350}
+            className="rounded-lg opacity-90 w-full h-auto"
           />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        </div>
+
+        <div className="absolute -left-[10vw] md:-left-[-100px] bottom-0 w-[28vw] md:w-[350px] translate-y-1/2">
+          <Image
+            src="/ChatGPT Image Oct 21, 2025 at 12_52_20 PM.png"
+            alt="Soda can"
+            width={350}
+            height={350}
+            className="rounded-lg opacity-90 w-full h-auto"
+          />
+        </div>
+      </section>
     </div>
   );
 }
