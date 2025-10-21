@@ -153,6 +153,14 @@ export default function ImageUpload() {
         return;
       }
 
+      // Check if menu items array is empty
+      if (!menuData || !Array.isArray(menuData) || menuData.length === 0) {
+        alert('We couldn\'t find any menu items in your image. Please make sure the image contains a clear menu and try again.');
+        setProcessing(false);
+        setUploading(false);
+        return;
+      }
+
       // Store menu items in localStorage for the quiz
       localStorage.setItem('menuItems', JSON.stringify(menuData));
       console.log('Menu items stored in localStorage');

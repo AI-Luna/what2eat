@@ -35,11 +35,11 @@ const questions: QuizQuestion[] = [
       ]
     },
     {
-        "question":"What flavor mood is ruling your stomach today?",
-        "answers": [
-            "Fiery and adventurous","Cheesy and comforting",
-            "Crisp and salty","Herbaceous and light"
-        ]
+      "question":"What flavor mood is ruling your stomach today?",
+      "answers": [
+          "Fiery and adventurous","Cheesy and comforting",
+          "Crisp and salty","Herbaceous and light"
+      ]
     },
     {
         "question":"What texture are you daydreaming about?",
