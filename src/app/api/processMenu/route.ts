@@ -22,7 +22,6 @@ interface ProcessMenuRequest {
   imageBase64?: string;     // Base64 encoded image data
   localFilePath?: string;   // Local file path (development only)
   fileId?: string;          // Uploaded file ID (from OpenAI Files API)
-  filterCourse?: string;    // Optional: filter results by course
 }
 
 /**
@@ -74,16 +73,7 @@ export async function POST(request: NextRequest) {
     // Extract menu items using OpenAI
     const menuItems = await extractMenuItems(body);
 
-    // Apply course filter if provided
-    let filteredItems = menuItems;
-    if (body.filterCourse) {
-      const filterCourse = body.filterCourse.toLowerCase();
-      filteredItems = menuItems.filter(
-        item => item.course?.toLowerCase() === filterCourse
-      );
-    }
-
-    return NextResponse.json(filteredItems, { status: 200 });
+    return NextResponse.json(menuItems, { status: 200 });
   } catch (error) {
     console.error('Error processing menu:', error);
 
@@ -102,6 +92,25 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Strip markdown code block formatting from JSON responses
+ * Handles cases where LLM returns ```json\n{...}\n``` instead of raw JSON
+ */
+function stripMarkdownFormatting(text: string): string {
+  // Remove markdown code blocks (```json ... ``` or ``` ... ```)
+  let cleaned = text.trim();
+
+  // Check if the response starts with ```
+  if (cleaned.startsWith('```')) {
+    // Remove opening ```json or ```
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '');
+    // Remove closing ```
+    cleaned = cleaned.replace(/\n?```\s*$/, '');
+  }
+
+  return cleaned.trim();
 }
 
 /**
@@ -181,7 +190,7 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
 
     // Call OpenAI API with vision capabilities
     const completion = await openai.chat.completions.create({
-      model: 'gpt-5-mini', // Using gpt-5-mini for vision support
+      model: 'gpt-4o-mini', // Using gpt-5-mini for vision support
       messages: [
         {
           role: 'system',
@@ -192,8 +201,7 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
           content: messageContent as any, // Type assertion for content array
         },
       ],
-      temperature: 0.3, // Lower temperature for more consistent extraction
-      max_tokens: 2000,
+      max_completion_tokens: 2000,
     });
 
     const responseText = completion.choices[0]?.message?.content;
@@ -201,8 +209,8 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
       throw new Error('No response from OpenAI');
     }
 
-    // Parse the JSON response
-    const parsedResponse: OpenAIMenuResponse = JSON.parse(responseText);
+    // Parse the JSON response (strip markdown formatting if present)
+    const parsedResponse: OpenAIMenuResponse = JSON.parse(stripMarkdownFormatting(responseText));
 
     // Validate the response structure
     if (!parsedResponse.menuItems || !Array.isArray(parsedResponse.menuItems)) {
