@@ -18,34 +18,33 @@ export default function Quiz() {
 
   // Fetch questions on mount
   useEffect(() => {
+    const fetchQuestions = async () => {
+      setLoading(true);
+      try {
+        // Check if we have personalized questions from the menu processing
+        const storedQuestions = localStorage.getItem('quizQuestions');
+        if (storedQuestions) {
+          const questions = JSON.parse(storedQuestions);
+          setQuestions(questions);
+          console.log('Using personalized questions from menu processing');
+          return;
+        }
+
+        // If no questions found, redirect back to upload
+        console.warn('No questions found in localStorage, redirecting to upload');
+        router.push('/upload');
+      } catch (error) {
+        console.error('Failed to load questions:', error);
+        // Redirect to upload if there's an error
+        router.push('/upload');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchQuestions();
     setTimeout(() => setFadeIn(true), 50);
-  }, []);
-
-  // Function to get questions from localStorage
-  const fetchQuestions = async () => {
-    setLoading(true);
-    try {
-      // Check if we have personalized questions from the menu processing
-      const storedQuestions = localStorage.getItem('quizQuestions');
-      if (storedQuestions) {
-        const questions = JSON.parse(storedQuestions);
-        setQuestions(questions);
-        console.log('Using personalized questions from menu processing');
-        return;
-      }
-
-      // If no questions found, redirect back to upload
-      console.warn('No questions found in localStorage, redirecting to upload');
-      router.push('/upload');
-    } catch (error) {
-      console.error('Failed to load questions:', error);
-      // Redirect to upload if there's an error
-      router.push('/upload');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [router]);
 
   const handleSelectOption = (option: string) => {
     setSelectedOption(option);

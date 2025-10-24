@@ -14,6 +14,8 @@ Rules:
 5. If a field is missing, use null
 6. Preserve the original names and descriptions as written on the menu
 7. If you cannot determine the course, use "other" as the course name
+8. If the menu prices seem high make sure that the menu is not representing the values just without a decimal place such as 530 representing 5.30 for something like a drink. 
+
 
 Example output format:
 {

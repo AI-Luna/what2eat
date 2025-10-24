@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import Image from "next/image";
+import type { Shape } from "canvas-confetti";
 
 export default function ImageUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -58,7 +59,7 @@ export default function ImageUpload() {
     const defaults = {
       origin: { y: 1 },
       colors: ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0'],
-      shapes: ['circle', 'square'],
+      shapes: ['circle', 'square'] as Shape[],
       scalar: 2.5, // Makes particles larger
       gravity: 0.8,
       decay: 0.9,

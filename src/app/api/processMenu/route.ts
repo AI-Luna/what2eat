@@ -4,6 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
 import { openAIRateLimit, getClientIP } from '@/lib/rateLimit';
+import type { ChatCompletionContentPart } from 'openai/resources/chat/completions';
 
 /**
  * MenuItem represents a single menu item
@@ -186,11 +187,7 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
 
   try {
     // Build the message content based on input type
-    const messageContent: Array<{
-      type: string;
-      text?: string;
-      image_url?: { url: string };
-    }> = [];
+    const messageContent: ChatCompletionContentPart[] = [];
 
     if (input.menuText) {
       // Text-based menu

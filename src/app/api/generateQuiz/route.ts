@@ -193,7 +193,7 @@ async function generateQuestionsFromMenu(
     try {
       parsedResponse = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('Failed to parse OpenAI response as JSON:', responseText);
+      console.error('Failed to parse OpenAI response as JSON:', parseError, responseText);
       throw new Error('OpenAI returned invalid JSON response');
     }
     
