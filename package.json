@@ -6,7 +6,11 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "install-sharp": "npm install --include=optional sharp || echo 'Sharp installation failed, will use fallback'"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.34.4"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",
@@ -20,7 +24,6 @@
     "openai": "^6.6.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "sharp": "^0.34.4",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {

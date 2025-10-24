@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import sharp from 'sharp';
 import { openAIRateLimit, getClientIP } from '@/lib/rateLimit';
 import type { ChatCompletionContentPart } from 'openai/resources/chat/completions';
+
+// Dynamic import for Sharp to handle platform-specific issues
+async function getSharp() {
+  try {
+    const sharp = await import('sharp');
+    return sharp.default;
+  } catch (error) {
+    console.warn('Sharp module failed to load:', error);
+    return null;
+  }
+}
 
 /**
  * MenuItem represents a single menu item
@@ -140,31 +150,45 @@ function stripMarkdownFormatting(text: string): string {
 /**
  * Downscale image to ensure largest dimension is <= 700px
  * Maintains aspect ratio
+ * Falls back to original buffer if Sharp is not available
  */
 async function downscaleImage(imageBuffer: Buffer): Promise<Buffer> {
-  const image = sharp(imageBuffer);
-  const metadata = await image.metadata();
-
-  if (!metadata.width || !metadata.height) {
-    throw new Error('Unable to read image dimensions');
+  const sharp = await getSharp();
+  
+  // If Sharp is not available, return original buffer
+  if (!sharp) {
+    console.warn('Sharp not available, skipping image downscaling');
+    return imageBuffer;
   }
 
-  const maxDimension = 700;
-  const largestDimension = Math.max(metadata.width, metadata.height);
+  try {
+    const image = sharp(imageBuffer);
+    const metadata = await image.metadata();
 
-  // Only resize if image is larger than max dimension
-  if (largestDimension > maxDimension) {
-    if (metadata.width > metadata.height) {
-      // Width is larger - resize based on width
-      return await image.resize({ width: maxDimension }).toBuffer();
-    } else {
-      // Height is larger - resize based on height
-      return await image.resize({ height: maxDimension }).toBuffer();
+    if (!metadata.width || !metadata.height) {
+      throw new Error('Unable to read image dimensions');
     }
-  }
 
-  // Image is already small enough
-  return imageBuffer;
+    const maxDimension = 700;
+    const largestDimension = Math.max(metadata.width, metadata.height);
+
+    // Only resize if image is larger than max dimension
+    if (largestDimension > maxDimension) {
+      if (metadata.width > metadata.height) {
+        // Width is larger - resize based on width
+        return await image.resize({ width: maxDimension }).toBuffer();
+      } else {
+        // Height is larger - resize based on height
+        return await image.resize({ height: maxDimension }).toBuffer();
+      }
+    }
+
+    // Image is already small enough
+    return imageBuffer;
+  } catch (error) {
+    console.warn('Sharp processing failed, using original image:', error);
+    return imageBuffer;
+  }
 }
 
 /**
