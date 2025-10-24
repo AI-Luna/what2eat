@@ -2,34 +2,14 @@
 
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { SignInButton, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 export default function Home() {
-  const { isSignedIn, isLoaded } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    // If user is authenticated, redirect to upload page
-    if (isLoaded && isSignedIn) {
-      router.push('/upload');
-    }
-  }, [isLoaded, isSignedIn, router]);
-
-  // Show loading state while checking auth
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    );
-  }
-
-  // Don't render landing page if user is signed in (they'll be redirected)
-  if (isSignedIn) {
-    return null;
-  }
+  const handleGetStarted = () => {
+    router.push('/upload');
+  };
 
   return (
     <div style={{backgroundColor: '#000000'}}>
@@ -47,15 +27,13 @@ export default function Home() {
             </div>
 
             <div className="flex gap-4 items-center justify-center">
-              <SignInButton
-                mode="modal"
-                fallbackRedirectUrl="/upload"
-                forceRedirectUrl="/upload"
+              <Button 
+                onClick={handleGetStarted}
+                size="lg" 
+                className="text-lg px-12 py-6 h-auto"
               >
-                <Button size="lg" className="text-lg px-12 py-6 h-auto">
-                  Get Started
-                </Button>
-              </SignInButton>
+                Get Started
+              </Button>
             </div>
           </div>
         </div>

@@ -5,74 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import type { QuizQuestion } from "@/types/quiz";
 
-// Example questions matching the API structure
-const exampleQuestions: QuizQuestion[] = [
-  {
-    "question": "How hungry are you?",
-    "answers": [
-      "Girl dinner. Just vibes and crumbs.",
-      "Appetizer energy only.",
-      "Regular human hungry.",
-      "I could eat a cow."
-    ]
-  },
-  {
-    "question": "Do you have any dietary restrictions?",
-    "answers": [
-      "Vegetarian",
-      "Vegan",
-      "Gluten-free (celiac disease)",
-      "Lactose intolerant",
-      "Kosher",
-      "Halal",
-      "Low sodium",
-      "Diabetic-friendly/Low sugar"
-    ]
-  },
-  {
-    "question": "Calorie Preference",
-    "answers": [
-      "Caloric deficit — gotta watch my carbs.",
-      "Caloric maintenance — I’ll have what they’re having.",
-      "Caloric surplus — I’m not watching my waist.",
-      "No clue, just feed me good food."
-    ]
-  },
-  {
-    "question":"What flavor mood is ruling your stomach today?",
-    "answers": [
-        "Fiery and adventurous","Cheesy and comforting",
-        "Crisp and salty","Herbaceous and light"
-    ]
-  },
-  {
-      "question":"What texture are you daydreaming about?",
-      "answers": [
-          "Crunchy and shareable",
-          "Tender and melt-in-your-mouth",
-          "Bubbly and creamy","Crispy and golden"
-      ]
-  },
-  {
-      "question":"Pick the vibe your plate should bring",
-      "answers": [
-          "Casual party-friendly",
-          "Romantic upscale",
-          "Nostalgic homey",
-          "Bold and indulgent"
-      ]
-  },
-  {
-      "question":"Pick the after-meal vibe you’re hunting",
-      "answers":[
-          "Cozy and satisfied","Energized and ready to chat","A little tipsy and merry",
-          "Light and refreshed"
-      ]
-  }
-];
-
 export default function Quiz() {
-  const [questions, setQuestions] = useState<QuizQuestion[]>(exampleQuestions);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -82,26 +16,36 @@ export default function Quiz() {
   const [suggesting, setSuggesting] = useState(false);
   const router = useRouter();
 
-  // Fetch questions on mount (or use example questions)
+  // Fetch questions on mount
   useEffect(() => {
-    // TODO: Replace with actual API call
-    // fetchQuestions();
+    fetchQuestions();
     setTimeout(() => setFadeIn(true), 50);
   }, []);
 
-  // Example function to fetch questions from API
-  // const fetchQuestions = async () => {
+  // Function to get questions from localStorage
+  const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/questions');
-      const data = await response.json();
-      setQuestions(data);
+      // Check if we have personalized questions from the menu processing
+      const storedQuestions = localStorage.getItem('quizQuestions');
+      if (storedQuestions) {
+        const questions = JSON.parse(storedQuestions);
+        setQuestions(questions);
+        console.log('Using personalized questions from menu processing');
+        return;
+      }
+
+      // If no questions found, redirect back to upload
+      console.warn('No questions found in localStorage, redirecting to upload');
+      router.push('/upload');
     } catch (error) {
-      console.error('Failed to fetch questions:', error);
-      // Fall back to example questions
-      setQuestions(exampleQuestions);
-    // setLoading(false);
-  // };
+      console.error('Failed to load questions:', error);
+      // Redirect to upload if there's an error
+      router.push('/upload');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSelectOption = (option: string) => {
     setSelectedOption(option);
@@ -128,6 +72,7 @@ export default function Quiz() {
       .map(([index, answer]) => {
         const questionIndex = parseInt(index);
         const question = questions[questionIndex];
+        if (!question) return `Q: Unknown question\nA: ${answer}`;
         return `Q: ${question.question}\nA: ${answer}`;
       })
       .join('\n\n');
@@ -206,12 +151,15 @@ export default function Quiz() {
   };
 
   const question = questions[currentQuestion];
-  const progress = ((currentQuestion + 1) / questions.length) * 100;
+  const progress = questions.length > 0 ? ((currentQuestion + 1) / questions.length) * 100 : 0;
 
-  if (loading) {
+  // Don't render if still loading or no questions available
+  if (loading || questions.length === 0 || !question) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-xl">Loading questions...</div>
+        <div className="text-white text-xl">
+          {loading ? 'Loading questions...' : 'No questions available. Please upload a menu first.'}
+        </div>
       </div>
     );
   }

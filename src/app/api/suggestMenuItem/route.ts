@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { getUserDietaryPreferences, formatDietaryPreferencesForPrompt } from '@/lib/clerk';
+import { openAIRateLimit, getClientIP } from '@/lib/rateLimit';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -78,6 +78,27 @@ export async function POST(request: NextRequest) {
   console.log('[SuggestMenuItem API] Starting suggestion generation...');
 
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const { success, limit, reset, remaining } = await openAIRateLimit.limit(clientIP);
+    
+    if (!success) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.',
+          retryAfter: Math.round((reset - Date.now()) / 1000)
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': new Date(reset).toISOString(),
+          }
+        }
+      );
+    }
+
     const body: SuggestMenuRequest = await request.json();
 
     console.log('[SuggestMenuItem API] Request received:', {
@@ -163,8 +184,9 @@ async function generateMenuSuggestions(
   questionsAndAnswers: string
 ): Promise<SuggestMenuResponse> {
   // Get user's dietary preferences
-  const dietaryPreferences = await getUserDietaryPreferences();
-  const dietaryInfo = formatDietaryPreferencesForPrompt(dietaryPreferences);
+  // const dietaryPreferences = await getUserDietaryPreferences();
+  // const dietaryInfo = formatDietaryPreferencesForPrompt(dietaryPreferences);
+  const dietaryInfo = ''; // No dietary preferences for now
 
   // Read prompt from file
   const promptPath = join(process.cwd(), 'src/app/api/suggestMenuItem/prompt.txt');

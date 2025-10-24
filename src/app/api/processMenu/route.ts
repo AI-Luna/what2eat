@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
-import { getUserDietaryPreferences, formatDietaryPreferencesForPrompt } from '@/lib/clerk';
+import { openAIRateLimit, getClientIP } from '@/lib/rateLimit';
 
 /**
  * MenuItem represents a single menu item
@@ -62,6 +62,27 @@ interface OpenAIMenuResponse {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const clientIP = getClientIP(request);
+    const { success, limit, reset, remaining } = await openAIRateLimit.limit(clientIP);
+    
+    if (!success) {
+      return NextResponse.json(
+        { 
+          error: 'Rate limit exceeded. Please try again later.',
+          retryAfter: Math.round((reset - Date.now()) / 1000)
+        },
+        { 
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': new Date(reset).toISOString(),
+          }
+        }
+      );
+    }
+
     const body: ProcessMenuRequest = await request.json();
 
     // Validate input - at least one input type must be provided
@@ -155,8 +176,9 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
   });
 
   // Get user's dietary preferences
-  const dietaryPreferences = await getUserDietaryPreferences();
-  const dietaryInfo = formatDietaryPreferencesForPrompt(dietaryPreferences);
+  // const dietaryPreferences = await getUserDietaryPreferences();
+  // const dietaryInfo = formatDietaryPreferencesForPrompt(dietaryPreferences);
+  const dietaryInfo = ''; // No dietary preferences for now
 
   // Read prompt template
   const promptPath = join(process.cwd(), 'src/app/api/processMenu/prompt.txt');

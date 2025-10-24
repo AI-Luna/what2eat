@@ -28,16 +28,11 @@ export const ALLERGIES = [
 export type DietaryRestriction = typeof DIETARY_RESTRICTIONS[number]
 export type Allergy = typeof ALLERGIES[number]
 
-// User's dietary preferences stored in Clerk metadata
+// User's dietary preferences
 export interface DietaryPreferences {
   restrictions: DietaryRestriction[]
   restrictionsOther?: string // For "Other" option
   allergies: Allergy[]
   allergiesOther?: string[] // For "Other" option (can have multiple)
   hasCompletedOnboarding: boolean
-}
-
-// Clerk user metadata type extension
-export interface UserMetadata {
-  dietaryPreferences?: DietaryPreferences
 }

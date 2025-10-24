@@ -9,8 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.33.7",
     "@radix-ui/react-slot": "^1.2.3",
+    "@upstash/ratelimit": "^2.0.6",
+    "@upstash/redis": "^1.35.6",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

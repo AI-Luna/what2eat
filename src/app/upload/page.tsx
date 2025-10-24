@@ -3,14 +3,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { SignOutButton } from "@clerk/nextjs";
 import confetti from "canvas-confetti";
+import Image from "next/image";
 
 export default function ImageUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -46,7 +44,6 @@ export default function ImageUpload() {
 
   const processFile = (file: File) => {
     setSelectedFile(file);
-    setUploadedUrl(null);
 
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -101,83 +98,92 @@ export default function ImageUpload() {
   const handleUpload = async () => {
     if (!selectedFile) return;
 
-    setUploading(true);
-    setProcessingStage("Uploading your menu...");
+    setProcessing(true);
+    setProcessingStage("Reading your menu...");
 
     try {
-      // Step 1: Upload the image
-      const formData = new FormData();
-      formData.append("file", selectedFile);
+      // Convert file to base64 directly
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Data = reader.result as string;
+        
+        // Send directly to processMenu API
+        const processResponse = await fetch("/api/processMenu", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            imageBase64: base64Data.split(',')[1], // Remove data:image/...;base64, prefix
+          }),
+        });
 
-      const uploadResponse = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+        const menuData = await processResponse.json();
 
-      const uploadData = await uploadResponse.json();
+        // Log the response from processMenu API
+        console.log('processMenu API Response:', menuData);
+        console.log('Menu items extracted:', menuData.length ? `${menuData.length} items` : 'No items');
 
-      if (!uploadResponse.ok) {
-        alert(`Upload failed: ${uploadData.error}`);
-        return;
-      }
+        if (!processResponse.ok) {
+          alert(`Menu processing failed: ${menuData.error}`);
+          setProcessing(false);
+          return;
+        }
 
-      setUploadedUrl(uploadData.url);
-      setUploading(false);
+        // Check if menu items array is empty
+        if (!menuData || !Array.isArray(menuData) || menuData.length === 0) {
+          alert('We couldn\'t find any menu items in your image. Please make sure the image contains a clear menu and try again.');
+          setProcessing(false);
+          return;
+        }
 
-      // Step 2: Process the menu with AI
-      setProcessing(true);
-      setProcessingStage("Reading your menu...");
+        // Store menu items in localStorage for the quiz
+        localStorage.setItem('menuItems', JSON.stringify(menuData));
+        console.log('Menu items stored in localStorage');
 
-      // Convert public URL to local file path for processing
-      const localPath = `public${uploadData.url}`;
+        setProcessingStage("Creating your personalized questions...");
 
-      const processResponse = await fetch("/api/processMenu", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          localFilePath: localPath,
-        }),
-      });
+        // Generate personalized questions based on the menu
+        try {
+          const menuString = menuData.map(item => `${item.name} - $${item.price || 'N/A'}`).join(', ');
+          
+          const quizResponse = await fetch("/api/generateQuiz", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              menu: menuString,
+            }),
+          });
 
-      const menuData = await processResponse.json();
+          const generatedQuestions = await quizResponse.json();
+          
+          if (quizResponse.ok && generatedQuestions) {
+            // Store the generated questions in localStorage
+            localStorage.setItem('quizQuestions', JSON.stringify(generatedQuestions));
+            console.log('Generated questions stored in localStorage');
+          } else {
+            console.warn('Failed to generate personalized questions, will use default questions');
+          }
+        } catch (quizError) {
+          console.error('Error generating personalized questions:', quizError);
+          // Continue with default questions
+        }
 
-      // Log the response from processMenu API
-      console.log('processMenu API Response:', menuData);
-      console.log('Menu items extracted:', menuData.length ? `${menuData.length} items` : 'No items');
+        // Small delay for better UX
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
-      if (!processResponse.ok) {
-        alert(`Menu processing failed: ${menuData.error}`);
+        // Success - show confetti and navigate
         setProcessing(false);
-        return;
-      }
-
-      // Check if menu items array is empty
-      if (!menuData || !Array.isArray(menuData) || menuData.length === 0) {
-        alert('We couldn\'t find any menu items in your image. Please make sure the image contains a clear menu and try again.');
-        setProcessing(false);
-        setUploading(false);
-        return;
-      }
-
-      // Store menu items in localStorage for the quiz
-      localStorage.setItem('menuItems', JSON.stringify(menuData));
-      console.log('Menu items stored in localStorage');
-
-      setProcessingStage("Creating your personalized questions...");
-
-      // Small delay for better UX
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Step 3: Success - show confetti and navigate
-      setProcessing(false);
-      triggerConfettiAndNavigate();
+        triggerConfettiAndNavigate();
+      };
+      
+      reader.readAsDataURL(selectedFile);
 
     } catch (error) {
-      console.error("Upload/processing error:", error);
+      console.error("Processing error:", error);
       alert("Something went wrong!");
-      setUploading(false);
       setProcessing(false);
     }
   };
@@ -189,12 +195,13 @@ export default function ImageUpload() {
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
 
-      {/* Sign Out button */}
-      <SignOutButton redirectUrl="/">
-        <button className="absolute top-8 left-8 text-white/60 hover:text-white transition-colors z-20">
-          ← Sign Out
-        </button>
-      </SignOutButton>
+      {/* Back to Home button */}
+      <button 
+        onClick={() => router.push('/')}
+        className="absolute top-8 left-8 text-white/60 hover:text-white transition-colors z-20"
+      >
+        ← Back to Home
+      </button>
 
       <div className="max-w-3xl w-full relative z-10">
         <div className="text-center mb-12">
@@ -262,9 +269,11 @@ export default function ImageUpload() {
             ) : (
               <div className="space-y-4">
                 <div className="relative group">
-                  <img
+                  <Image
                     src={preview}
                     alt="Preview"
+                    width={400}
+                    height={400}
                     className="max-w-full h-auto max-h-96 mx-auto rounded-xl shadow-2xl"
                   />
                   <label
@@ -279,37 +288,15 @@ export default function ImageUpload() {
             )}
           </div>
 
-          {/* Upload Button */}
+          {/* Process Button */}
           {preview && !processing && (
             <Button
               onClick={handleUpload}
-              disabled={!selectedFile || uploading || processing}
+              disabled={!selectedFile || processing}
               className="w-full bg-white text-black hover:bg-white/90 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               size="lg"
             >
-              {uploading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Uploading...
-                </span>
-              ) : (
-                "Upload Image"
-              )}
+              Process Menu
             </Button>
           )}
 
