@@ -63,7 +63,7 @@ export default function Results() {
             Your Perfect Match!
           </h1>
           <p className="text-xl text-white/60 max-w-2xl mx-auto">
-            Based on your preferences, here's what we recommend
+            Based on your preferences, here&apos;s what we recommend
           </p>
         </div>
 

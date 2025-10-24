@@ -128,7 +128,7 @@ export default function OnboardingPage() {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to What2Eat!</h1>
             <p className="text-gray-600">
-              Let's personalize your experience. Tell us about your dietary preferences so we can recommend the perfect meals for you.
+              Let&apos;s personalize your experience. Tell us about your dietary preferences so we can recommend the perfect meals for you.
             </p>
           </div>
 

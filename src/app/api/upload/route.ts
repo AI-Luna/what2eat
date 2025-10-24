@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     try {
       await mkdir(uploadDir, { recursive: true });
       console.log('[Upload API] Upload directory ready:', uploadDir);
-    } catch (error) {
+    } catch {
       // Directory might already exist, which is fine
       console.log('[Upload API] Upload directory already exists');
     }

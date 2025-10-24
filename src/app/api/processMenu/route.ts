@@ -243,7 +243,7 @@ async function extractMenuItems(input: ProcessMenuRequest): Promise<MenuItem[]> 
         },
         {
           role: 'user',
-          content: messageContent as any, // Type assertion for content array
+          content: messageContent,
         },
       ],
       max_completion_tokens: 2000,

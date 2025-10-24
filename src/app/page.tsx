@@ -39,7 +39,7 @@ export default function Home() {
           <div className="flex flex-col items-center text-center space-y-8">
             <div className="space-y-4 max-w-3xl">
               <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
-                Can't Decide<br />What to Eat?
+                Can&apos;t Decide<br />What to Eat?
               </h1>
               <p className="text-xl md:text-2xl text-muted-foreground">
                 Let AI help you discover the perfect dish from any restaurant menu

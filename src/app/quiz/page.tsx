@@ -90,7 +90,7 @@ export default function Quiz() {
   }, []);
 
   // Example function to fetch questions from API
-  const fetchQuestions = async () => {
+  // const fetchQuestions = async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/questions');
@@ -100,10 +100,8 @@ export default function Quiz() {
       console.error('Failed to fetch questions:', error);
       // Fall back to example questions
       setQuestions(exampleQuestions);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // setLoading(false);
+  // };
 
   const handleSelectOption = (option: string) => {
     setSelectedOption(option);

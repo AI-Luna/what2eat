@@ -148,9 +148,9 @@ export default function SuccessPage() {
             </p>
             <ol className="text-sm text-green-800 list-decimal list-inside ml-2 mt-1">
               <li>Go to your Clerk Dashboard</li>
-              <li>Navigate to "Users"</li>
+              <li>Navigate to &quot;Users&quot;</li>
               <li>Find your user account</li>
-              <li>Check the "Public metadata" section</li>
+              <li>Check the &quot;Public metadata&quot; section</li>
             </ol>
           </div>
 
