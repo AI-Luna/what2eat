@@ -143,7 +143,7 @@ export default function Quiz() {
 
   const handleNext = async () => {
     const question = questions[currentQuestion];
-    const currentAnswer = question?.allowMultiple ? selectedOptions : selectedOption;
+    const currentAnswer: string | string[] = question?.allowMultiple ? selectedOptions : (selectedOption || '');
     
     if ((question?.allowMultiple && selectedOptions.length > 0) || selectedOption) {
       const newAnswers = { ...answers, [currentQuestion]: currentAnswer };

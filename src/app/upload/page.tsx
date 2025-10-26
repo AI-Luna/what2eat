@@ -21,7 +21,6 @@ export default function ImageUpload() {
   const [isDragging, setIsDragging] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [processingStage, setProcessingStage] = useState<string>("");
   const [currentEmojiIndex, setCurrentEmojiIndex] = useState(0);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const router = useRouter();
