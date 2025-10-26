@@ -11,6 +11,7 @@ import { openAIRateLimit, getClientIP } from '@/lib/rateLimit';
 interface AIQuizQuestion {
   question: string;
   answers: string[];
+  allowMultiple?: boolean;
 }
 
 /**
@@ -43,15 +44,26 @@ const STANDARD_QUESTIONS: QuizQuestion[] = [
   {
     "question": "Do you have any dietary restrictions?",
     "answers": [
+      "None",
       "Vegetarian",
       "Vegan",
+      "Pescatarian",
+      "Paleo",
+      "Keto / Low-carb",
       "Gluten-free (celiac disease)",
       "Lactose intolerant",
+      "Nut-free",
+      "Soy-free",
+      "Shellfish-free",
+      "Egg-free",
+      "No red meat",
+      "Plant-based (flexitarian)",
       "Kosher",
       "Halal",
       "Low sodium",
       "Diabetic-friendly/Low sugar"
-    ]
+    ],
+    "allowMultiple": true
   },
   {
     "question": "Calorie Preference",
@@ -220,7 +232,8 @@ async function generateQuestionsFromMenu(
       })
       .map(q => ({
         question: q.question,
-        answers: q.answers
+        answers: q.answers,
+        ...(q.allowMultiple && { allowMultiple: q.allowMultiple })
       }));
 
     // If no valid questions were generated, log warning but don't fail

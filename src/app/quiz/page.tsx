@@ -4,17 +4,43 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import type { QuizQuestion } from "@/types/quiz";
+import FoodLoadingAnimation from "@/components/FoodLoadingAnimation";
 
 export default function Quiz() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<{ [key: number]: string }>({});
+  const [answers, setAnswers] = useState<{ [key: number]: string | string[] }>({});
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [fadeIn, setFadeIn] = useState(false);
   const [questionFade, setQuestionFade] = useState(true);
   const [loading, setLoading] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const router = useRouter();
+
+  // Function to render question text with animated "hungry"
+  const renderQuestionText = (text: string) => {
+    const lowerText = text.toLowerCase();
+    const hungryIndex = lowerText.indexOf('hungry');
+    
+    if (hungryIndex === -1) {
+      return text;
+    }
+    
+    const before = text.substring(0, hungryIndex);
+    const hungryWord = text.substring(hungryIndex, hungryIndex + 6);
+    const after = text.substring(hungryIndex + 6);
+    
+    return (
+      <>
+        {before}
+        <span className="animate-color-change inline-block">
+          {hungryWord}
+        </span>
+        {after}
+      </>
+    );
+  };
 
   // Fetch questions on mount
   useEffect(() => {
@@ -47,17 +73,54 @@ export default function Quiz() {
   }, [router]);
 
   const handleSelectOption = (option: string) => {
-    setSelectedOption(option);
+    const question = questions[currentQuestion];
+    
+    if (question?.allowMultiple) {
+      // Handle multiple selection
+      setSelectedOptions(prev => {
+        if (option === "None") {
+          // If "None" is selected, clear all other selections
+          return ["None"];
+        } else {
+          // Remove "None" if another option is selected
+          const filtered = prev.filter(o => o !== "None");
+          
+          if (filtered.includes(option)) {
+            // Deselect if already selected
+            return filtered.filter(o => o !== option);
+          } else {
+            // Select if not already selected
+            return [...filtered, option];
+          }
+        }
+      });
+    } else {
+      // Handle single selection
+      setSelectedOption(option);
+    }
   };
 
-  const transitionToQuestion = (nextQuestionIndex: number, newSelectedOption: string | null) => {
+  const transitionToQuestion = (nextQuestionIndex: number, newAnswer: string | string[] | null) => {
     // Fade out current question
     setQuestionFade(false);
 
     setTimeout(() => {
       // Change question
       setCurrentQuestion(nextQuestionIndex);
-      setSelectedOption(newSelectedOption);
+      
+      // Load previous answer
+      if (newAnswer) {
+        if (Array.isArray(newAnswer)) {
+          setSelectedOptions(newAnswer);
+          setSelectedOption(null);
+        } else {
+          setSelectedOption(newAnswer);
+          setSelectedOptions([]);
+        }
+      } else {
+        setSelectedOption(null);
+        setSelectedOptions([]);
+      }
 
       // Fade in new question
       setTimeout(() => {
@@ -66,24 +129,28 @@ export default function Quiz() {
     }, 300);
   };
 
-  const formatQuestionsAndAnswers = (answers: { [key: number]: string }): string => {
+  const formatQuestionsAndAnswers = (answers: { [key: number]: string | string[] }): string => {
     return Object.entries(answers)
       .map(([index, answer]) => {
         const questionIndex = parseInt(index);
         const question = questions[questionIndex];
-        if (!question) return `Q: Unknown question\nA: ${answer}`;
-        return `Q: ${question.question}\nA: ${answer}`;
+        const formattedAnswer = Array.isArray(answer) ? answer.join(', ') : answer;
+        if (!question) return `Q: Unknown question\nA: ${formattedAnswer}`;
+        return `Q: ${question.question}\nA: ${formattedAnswer}`;
       })
       .join('\n\n');
   };
 
   const handleNext = async () => {
-    if (selectedOption) {
-      const newAnswers = { ...answers, [currentQuestion]: selectedOption };
+    const question = questions[currentQuestion];
+    const currentAnswer = question?.allowMultiple ? selectedOptions : selectedOption;
+    
+    if ((question?.allowMultiple && selectedOptions.length > 0) || selectedOption) {
+      const newAnswers = { ...answers, [currentQuestion]: currentAnswer };
       setAnswers(newAnswers);
 
       if (currentQuestion < questions.length - 1) {
-        transitionToQuestion(currentQuestion + 1, null);
+        transitionToQuestion(currentQuestion + 1, answers[currentQuestion + 1] || null);
       } else {
         // Submit quiz - call suggestMenuItem API
         console.log("Quiz completed:", newAnswers);
@@ -164,41 +231,7 @@ export default function Quiz() {
   }
 
   if (suggesting) {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        {/* Background gradient effects */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black to-blue-900/20"></div>
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-
-        <div className="relative z-10 flex flex-col items-center gap-8">
-          {/* Animated circles */}
-          <div className="relative">
-            <div className="w-32 h-32 relative">
-              <div className="absolute inset-0 border-4 border-white/20 rounded-full"></div>
-              <div className="absolute inset-0 border-4 border-transparent border-t-white rounded-full animate-spin"></div>
-              <div className="absolute inset-2 border-4 border-transparent border-t-green-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1s' }}></div>
-            </div>
-          </div>
-
-          <div className="text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">
-              Finding Your Perfect Item
-            </h1>
-            <p className="text-xl text-white/60">
-              Analyzing your preferences and the menu...
-            </p>
-          </div>
-
-          {/* Progress dots */}
-          <div className="flex gap-2">
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-          </div>
-        </div>
-      </div>
-    );
+    return <FoodLoadingAnimation />;
   }
 
   return (
@@ -230,29 +263,50 @@ export default function Quiz() {
           {/* Question Header */}
           <div className="text-center mb-12">
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">
-              {question.question}
+              {renderQuestionText(question.question)}
             </h1>
-            <p className="text-lg text-white/60">
-              Select the option that best fits your preference
-            </p>
+            {currentQuestion < 3 && (
+              <p className="text-lg text-white/60">
+                {question.allowMultiple ? 'Select all that apply' : 'Select the option that best fits your preference'}
+              </p>
+            )}
           </div>
 
           {/* Answer Options */}
           <div className="space-y-4 mb-8">
-            <div className={`grid grid-cols-1 ${question.answers.length > 3 ? 'md:grid-cols-2' : 'md:grid-cols-' + Math.min(question.answers.length, 3)} gap-4`}>
-              {question.answers.map((answer, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleSelectOption(answer)}
-                  className={`p-6 rounded-xl transition-all transform hover:scale-105 ${
-                    selectedOption === answer
-                      ? "bg-white text-black border-2 border-white"
-                      : "bg-white/5 hover:bg-white/10 border-2 border-white/20 hover:border-white/40 text-white"
-                  }`}
-                >
-                  <div className="font-semibold text-lg">{answer}</div>
-                </button>
-              ))}
+            <div className={`grid grid-cols-1 ${question.allowMultiple ? 'md:grid-cols-3' : question.answers.length > 3 ? 'md:grid-cols-2' : 'md:grid-cols-' + Math.min(question.answers.length, 3)} gap-4`}>
+              {question.answers.map((answer, index) => {
+                const isSelected = question.allowMultiple 
+                  ? selectedOptions.includes(answer)
+                  : selectedOption === answer;
+                
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleSelectOption(answer)}
+                    className={`p-4 rounded-xl transition-all transform hover:scale-105 text-left ${
+                      isSelected
+                        ? "bg-white text-black border-2 border-white"
+                        : "bg-white/5 hover:bg-white/10 border-2 border-white/20 hover:border-white/40 text-white"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {question.allowMultiple && (
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                          isSelected ? 'bg-black border-black' : 'border-white/40'
+                        }`}>
+                          {isSelected && (
+                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      )}
+                      <div className="font-semibold text-base">{answer}</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -271,14 +325,32 @@ export default function Quiz() {
           )}
           <Button
             onClick={handleNext}
-            disabled={!selectedOption}
-            className={`${currentQuestion === 0 ? 'w-full' : 'flex-1'} bg-white text-black hover:bg-white/90 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
+            disabled={question.allowMultiple ? selectedOptions.length === 0 : !selectedOption}
+            className={`${currentQuestion === 0 ? 'w-full' : 'flex-1'} ${
+              currentQuestion === questions.length - 1 
+                ? 'bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white' 
+                : 'bg-white hover:bg-white/90 text-black'
+            } transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
             size="lg"
           >
             {currentQuestion === questions.length - 1 ? "Get My Recommendations" : "Next →"}
           </Button>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes colorChange {
+          0% { color: #ffffff; }
+          20% { color: #ff6b6b; }
+          40% { color: #ffd93d; }
+          60% { color: #6bcf7f; }
+          80% { color: #4ecdc4; }
+          100% { color: #ffffff; }
+        }
+        .animate-color-change {
+          animation: colorChange 3s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }

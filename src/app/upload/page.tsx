@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import confetti from "canvas-confetti";
 import Image from "next/image";
 import type { Shape } from "canvas-confetti";
+
+const FOOD_EMOJIS = ['🍕', '🍔', '🍣', '🍜', '🥗', '🍝', '🌮', '🍱', '🥘', '🍲', '🍛', '🍤', '🥙', '🌯', '🥪', '🍖', '🥩', '🍗'];
+const LOADING_MESSAGES = [
+  'Marinating on your menu…',
+  'Tasting every word before we start…',
+  'Syncing flavor intelligence…',
+  'Cooking up your questions…'
+];
 
 export default function ImageUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -14,7 +22,30 @@ export default function ImageUpload() {
   const [fadeOut, setFadeOut] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [processingStage, setProcessingStage] = useState<string>("");
+  const [currentEmojiIndex, setCurrentEmojiIndex] = useState(0);
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const router = useRouter();
+
+  // Cycle through food emojis while processing
+  useEffect(() => {
+    if (processing) {
+      const interval = setInterval(() => {
+        setCurrentEmojiIndex((prev) => (prev + 1) % FOOD_EMOJIS.length);
+      }, 300);
+      return () => clearInterval(interval);
+    }
+  }, [processing]);
+
+  // Cycle through loading messages
+  useEffect(() => {
+    if (processing) {
+      setCurrentMessageIndex(0); // Start with first message
+      const interval = setInterval(() => {
+        setCurrentMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+      }, 3000); // Change message every 3 seconds
+      return () => clearInterval(interval);
+    }
+  }, [processing]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -100,7 +131,6 @@ export default function ImageUpload() {
     if (!selectedFile) return;
 
     setProcessing(true);
-    setProcessingStage("Reading your menu...");
 
     try {
       // Convert file to base64 directly
@@ -141,8 +171,6 @@ export default function ImageUpload() {
         // Store menu items in localStorage for the quiz
         localStorage.setItem('menuItems', JSON.stringify(menuData));
         console.log('Menu items stored in localStorage');
-
-        setProcessingStage("Creating your personalized questions...");
 
         // Generate personalized questions based on the menu
         try {
@@ -199,33 +227,33 @@ export default function ImageUpload() {
       {/* Back to Home button */}
       <button 
         onClick={() => router.push('/')}
-        className="absolute top-8 left-8 text-white/60 hover:text-white transition-colors z-20"
+        className="absolute top-4 left-4 md:top-8 md:left-8 text-white/60 hover:text-white transition-colors z-20 text-sm md:text-base"
       >
         ← Back to Home
       </button>
 
-      <div className="max-w-3xl w-full relative z-10">
-        <div className="text-center mb-12">
-          <h1 className="text-6xl md:text-7xl font-bold text-white mb-4 tracking-tight">
+      <div className="max-w-4xl w-full relative z-10 pt-12 md:pt-0">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-2 tracking-tight">
             Upload Your Menu
           </h1>
-          <p className="text-xl text-white/60">
-            Share your restaurant menu and let AI help you decide
+          <p className="text-base md:text-lg text-white/60 px-4">
+            You pick the menu, we&apos;ll handle the overthinking.
           </p>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 flex flex-col items-center">
           {/* Upload Area */}
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`relative border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ${
+            className={`relative border-2 border-dashed rounded-2xl text-center transition-all duration-300 ${
               isDragging
-                ? "border-white bg-white/10 scale-105"
+                ? "border-white bg-white/10 scale-105 p-12 w-full"
                 : preview
-                ? "border-white/30 bg-white/5"
-                : "border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10"
+                ? "border-white/30 bg-transparent p-4"
+                : "border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10 p-12 w-full"
             }`}
           >
             <input
@@ -259,7 +287,7 @@ export default function ImageUpload() {
                   </div>
                   <div>
                     <p className="text-xl text-white font-medium mb-2">
-                      Drop your image here, or click to browse
+                      Drop your menu here, we&apos;ll do the cooking.
                     </p>
                     <p className="text-white/40 text-sm">
                       Supports: JPG, PNG, GIF
@@ -268,72 +296,76 @@ export default function ImageUpload() {
                 </div>
               </label>
             ) : (
-              <div className="space-y-4">
-                <div className="relative group">
-                  <Image
-                    src={preview}
-                    alt="Preview"
-                    width={400}
-                    height={400}
-                    className="max-w-full h-auto max-h-96 mx-auto rounded-xl shadow-2xl"
-                  />
-                  <label
-                    htmlFor="file-upload"
-                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-xl flex items-center justify-center"
-                  >
-                    <span className="text-white font-medium">Click to change image</span>
-                  </label>
-                </div>
-                <p className="text-white/60 text-sm">{selectedFile?.name}</p>
+              <div className="relative group inline-block">
+                <Image
+                  src={preview}
+                  alt="Preview"
+                  width={800}
+                  height={800}
+                  className="h-auto max-h-[55vh] w-auto max-w-full object-contain rounded-lg shadow-2xl"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-lg flex items-center justify-center"
+                >
+                  <span className="text-white font-medium">Click to change image</span>
+                </label>
               </div>
             )}
           </div>
 
-          {/* Process Button */}
+          {/* Floating Process Button */}
           {preview && !processing && (
-            <Button
-              onClick={handleUpload}
-              disabled={!selectedFile || processing}
-              className="w-full bg-white text-black hover:bg-white/90 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              size="lg"
-            >
-              Process Menu
-            </Button>
-          )}
-
-          {/* Processing Animation */}
-          {processing && (
-            <div className="p-8 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex flex-col items-center gap-6">
-                <div className="relative">
-                  {/* Animated circles */}
-                  <div className="w-24 h-24 relative">
-                    <div className="absolute inset-0 border-4 border-white/20 rounded-full"></div>
-                    <div className="absolute inset-0 border-4 border-transparent border-t-white rounded-full animate-spin"></div>
-                    <div className="absolute inset-2 border-4 border-transparent border-t-green-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1s' }}></div>
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-white font-semibold text-xl mb-2">
-                    {processingStage}
-                  </p>
-                  <p className="text-white/60 text-sm">
-                    This will only take a moment
-                  </p>
-                </div>
-
-                {/* Progress dots */}
-                <div className="flex gap-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                </div>
-              </div>
+            <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 animate-bounce">
+              <Button
+                onClick={handleUpload}
+                disabled={!selectedFile || processing}
+                className="bg-gradient-to-r from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 transition-all transform hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-2xl px-12 py-6 text-lg font-bold"
+                size="lg"
+              >
+                <span className="inline-block animate-pulse">Process Menu</span>
+              </Button>
             </div>
           )}
+
         </div>
       </div>
+
+      {/* Full Screen Processing Animation */}
+      {processing && (
+        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-8">
+            {/* Status Text Above Emoji */}
+            <h2 className="text-3xl md:text-4xl font-bold text-white text-center transition-opacity duration-500">
+              {LOADING_MESSAGES[currentMessageIndex]}
+            </h2>
+
+            {/* Flipping Food Emojis at Center */}
+            <div className="text-9xl animate-flip">
+              {FOOD_EMOJIS[currentEmojiIndex]}
+            </div>
+
+            {/* Subtitle Below */}
+            <p className="text-white/60 text-lg">
+              This will only take a moment
+            </p>
+          </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes flip {
+          0%, 100% {
+            transform: rotateY(0deg) scale(1);
+          }
+          50% {
+            transform: rotateY(180deg) scale(1.2);
+          }
+        }
+        .animate-flip {
+          animation: flip 0.6s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }

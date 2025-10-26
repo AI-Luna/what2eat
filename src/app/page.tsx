@@ -22,7 +22,7 @@ export default function Home() {
                 Can&apos;t Decide<br />What to Eat?
               </h1>
               <p className="text-xl md:text-2xl text-muted-foreground">
-                Let AI help you discover the perfect dish from any restaurant menu
+                Let AI find what your cravings are trying to say
               </p>
             </div>
 

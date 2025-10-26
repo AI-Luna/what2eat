@@ -1,6 +1,7 @@
 export interface QuizQuestion {
   question: string;
   answers: string[];
+  allowMultiple?: boolean;
 }
 
 export interface QuizResponse {
@@ -8,5 +9,5 @@ export interface QuizResponse {
 }
 
 export interface QuizSubmission {
-  answers: { [key: number]: string };
+  answers: { [key: number]: string | string[] };
 }

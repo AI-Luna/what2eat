@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "What2Eat - AI-Powered Menu Recommendations",
   description: "Can't decide what to eat? Let AI help you discover the perfect dish from any restaurant menu. Upload a menu, answer a few questions, and get personalized recommendations.",
+  icons: {
+    icon: '/avocado-icon.svg',
+  },
 };
 
 export default function RootLayout({

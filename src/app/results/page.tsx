@@ -57,13 +57,13 @@ export default function Results() {
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-block mb-4">
-            <div className="text-6xl">🎉</div>
+            <div className="text-6xl">🍽️</div>
           </div>
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">
-            Your Perfect Match!
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+            Picked by AI, Endorsed by Hunger
           </h1>
           <p className="text-xl text-white/60 max-w-2xl mx-auto">
-            Based on your preferences, here&apos;s what we recommend
+            Your cravings might just agree.
           </p>
         </div>
 
